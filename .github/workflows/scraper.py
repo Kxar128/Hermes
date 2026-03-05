@@ -11,7 +11,10 @@ from urllib.parse import urlparse
 STATE_FILE = "state.json"
 
 USERS = {
-    "YourTwitterUsername": os.environ.get("HERMESSOLARIS"),
+    "Alina_AE": os.environ.get("HERMESSOLARIS"),
+    "Datenshi6699": os.environ.get("HERMESSOLARIS"),
+    "AQWorldsGame": os.environ.get("HERMESSOLARIS"),
+    "AqwClass": os.environ.get("HERMESSOLARIS"),
 }
 
 FEED_BASE = "https://nitter.net"  # RSS provider
