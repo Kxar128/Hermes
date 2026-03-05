@@ -1,1 +1,39 @@
-
+name: Twitter to Discord
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-pip
+          pip3 install requests feedparser
+      - name: Run scraper
+        env:
+          HERMESSOLARIS: ${{ vars.HERMESSOLARIS }}
+        run: |
+          python3 scraper.py
+      - name: Commit updated state.json (if changed)
+        if: ${{ always() }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -f state.json ]; then
+            git add state.json
+            if ! git diff --staged --quiet; then
+              git commit -m "Update state.json [ci skip]" || echo "commit failed"
+              git push origin HEAD:${{ github.ref_name }} || echo "push failed"
+            else
+              echo "No changes to state.json"
+            fi
+          else
+            echo "state.json not found, nothing to commit"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
