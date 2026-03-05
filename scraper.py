@@ -124,19 +124,28 @@ def process_user(username, webhook, state, posted_this_run):
         print(f"[INFO] no RSS entries for {username}")
         return False
     entries_sorted = sorted(entries, key=lambda x: x["id"])
+
     last_seen_id = None
     if state.get(username):
         try:
-            last_seen_id = int(state.get(username))
+            last_seen_id = int(state[username])
         except:
             last_seen_id = None
-    if last_seen_id:
-        new_entries = [e for e in entries_sorted if e["id"] > last_seen_id]
-    else:
-        new_entries = entries_sorted[-1:] if entries_sorted else []
+
+    # FIX 1: Bootstrap mode — no prior state, record newest ID without posting
+    if last_seen_id is None:
+        newest_id = entries_sorted[-1]["id"] if entries_sorted else None
+        if newest_id:
+            print(f"[BOOTSTRAP] {username} — recording newest id {newest_id}, skipping post")
+            state[username] = str(newest_id)
+        return True  # signal that state was updated
+
+    new_entries = [e for e in entries_sorted if e["id"] > last_seen_id]
+
     if not new_entries:
         print(f"[OK] no new post for {username}")
         return False
+
     any_posted = False
     for entry in new_entries:
         if entry["id"] in posted_this_run:
@@ -149,10 +158,16 @@ def process_user(username, webhook, state, posted_this_run):
         else:
             print(f"[WARN] failed to post {entry['link']}; stopping further posts for {username}")
             break
+
+    # FIX 2: Only count IDs that were actually posted this run, not all new_entries
     if any_posted and not TEST_MODE:
-        newest_posted_id = max(e["id"] for e in new_entries) if new_entries else None
-        if newest_posted_id:
-            state[username] = str(newest_posted_id)
+        last_posted = max(
+            (e["id"] for e in new_entries if e["id"] in posted_this_run),
+            default=None
+        )
+        if last_posted:
+            state[username] = str(last_posted)
+
     return any_posted
 
 
